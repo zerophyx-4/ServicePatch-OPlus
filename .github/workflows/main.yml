@@ -1,0 +1,126 @@
+name: Patch services.jar
+
+on:
+  workflow_dispatch:
+    inputs:
+      services_url:
+        description: 'Direct link to services.jar (Pixeldrain supported)'
+        required: true
+      disable_secure_screenshot:
+        description: 'Disable Secure Screenshot'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: sudo apt-get install -y zipalign p7zip-full
+
+      - name: Download and Validate services.jar
+        run: |
+          URL="${{ github.event.inputs.services_url }}"
+
+          if [ -z "$URL" ]; then
+            echo "❌ No URL provided."
+            exit 1
+          fi
+
+          # Convert Pixeldrain share link to direct API link
+          PD_MATCH=$(echo "$URL" | grep -oP '(?<=pixeldrain\.com/u/)[^/?]+')
+          if [ -n "$PD_MATCH" ]; then
+            URL="https://pixeldrain.com/api/file/${PD_MATCH}"
+            echo "✅ Converted to Pixeldrain API link: $URL"
+          fi
+
+          echo "Downloading from: $URL"
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          HTTP_CODE=$(curl -L -A "$UA" -w "%{http_code}" -o services.jar -D headers.txt "$URL" 2>/dev/null)
+
+          echo "HTTP response code: $HTTP_CODE"
+          cat headers.txt
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ HTTP error $HTTP_CODE"
+            head -n 20 services.jar
+            exit 1
+          fi
+
+          SIZE=$(stat -c%s services.jar 2>/dev/null || stat -f%z services.jar 2>/dev/null)
+          if [ "$SIZE" -lt 100000 ]; then
+            echo "❌ File too small ($SIZE bytes)"
+            head -n 20 services.jar
+            exit 1
+          fi
+
+          if ! unzip -tq services.jar >/dev/null 2>&1; then
+            echo "❌ File is not a valid ZIP/JAR archive."
+            exit 1
+          fi
+
+          echo "✅ Download successful. Size: $SIZE bytes"
+
+      - name: Backup original services.jar
+        run: cp services.jar services_original.jar
+
+      - name: Run Patch Script
+        env:
+          DISABLE_SECURE_SCREENSHOT: ${{ github.event.inputs.disable_secure_screenshot }}
+        run: |
+          chmod +x patch.sh
+          bash patch.sh 2>&1 | tee patch.log
+
+      - name: Verify output
+        run: |
+          if [ ! -f services.jar ]; then
+            echo "❌ services.jar not found after patch!"
+            exit 1
+          fi
+          echo "✅ Patched services.jar size: $(du -sh services.jar | cut -f1)"
+
+      - name: Build Magisk Module
+        run: |
+          BUILD_DIR="build_module"
+          cp -r module_template "$BUILD_DIR"
+
+          mkdir -p "$BUILD_DIR/system/framework"
+          cp services.jar "$BUILD_DIR/system/framework/services.jar"
+
+          if [ -d system ]; then
+            cp -r system/. "$BUILD_DIR/system/"
+          fi
+
+          7z a -tzip -mx=9 FaceUnlock-Module.zip "./$BUILD_DIR/*" >/dev/null
+          echo "✅ Magisk module created. Size: $(du -sh FaceUnlock-Module.zip | cut -f1)"
+
+      - name: Prepare Output Package
+        run: |
+          mkdir -p final_output/logs
+
+          cp services.jar final_output/services.jar
+          cp services_original.jar final_output/services_original.jar
+          cp FaceUnlock-Module.zip final_output/
+          cp patch.log final_output/logs/
+
+          [ -d system ] && cp -r system final_output/ || true
+          [ -f README.md ] && cp README.md final_output/ || true
+
+          echo "📦 Output:"
+          ls -lh final_output/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-services
+          path: final_output/
