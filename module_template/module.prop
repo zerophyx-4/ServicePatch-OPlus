@@ -1,0 +1,6 @@
+id=faceunlock_oplus
+name=Fix FaceUnlock Modules for OPlus ROMs
+author=zerophyx
+version=v1.0
+versionCode=1
+description=Replace Patched services.jar to implement motorola Face Unlock on OPlus ROMs (ColorOS 16, realmeUI 7, OxygenOS 16)
