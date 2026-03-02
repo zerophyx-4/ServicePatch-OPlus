@@ -11,6 +11,11 @@ on:
         required: false
         default: false
         type: boolean
+      build_magisk_module:
+        description: 'Build Magisk Module'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -71,15 +76,12 @@ jobs:
 
           echo "✅ Download successful. Size: $SIZE bytes"
 
-      - name: Backup original services.jar
-        run: cp services.jar services_original.jar
-
       - name: Run Patch Script
         env:
           DISABLE_SECURE_SCREENSHOT: ${{ github.event.inputs.disable_secure_screenshot }}
         run: |
           chmod +x patch.sh
-          bash patch.sh 2>&1 | tee patch.log
+          bash patch.sh
 
       - name: Verify output
         run: |
@@ -90,6 +92,7 @@ jobs:
           echo "✅ Patched services.jar size: $(du -sh services.jar | cut -f1)"
 
       - name: Build Magisk Module
+        if: ${{ github.event.inputs.build_magisk_module == 'true' }}
         run: |
           BUILD_DIR="build_module"
           cp -r module_template "$BUILD_DIR"
@@ -106,15 +109,15 @@ jobs:
 
       - name: Prepare Output Package
         run: |
-          mkdir -p final_output/logs
+          mkdir -p final_output
 
-          cp services.jar final_output/services.jar
-          cp services_original.jar final_output/services_original.jar
-          cp FaceUnlock-Module.zip final_output/
-          cp patch.log final_output/logs/
-
-          [ -d system ] && cp -r system final_output/ || true
-          [ -f README.md ] && cp README.md final_output/ || true
+          if [[ "${{ github.event.inputs.build_magisk_module }}" == "true" ]]; then
+            cp FaceUnlock-Module.zip final_output/
+          else
+            cp services.jar final_output/
+            [ -d system ] && cp -r system final_output/ || true
+            [ -f README.md ] && cp README.md final_output/ || true
+          fi
 
           echo "📦 Output:"
           ls -lh final_output/
