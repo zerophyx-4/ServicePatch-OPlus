@@ -5,7 +5,6 @@ Automated workflow to patch services.jar - implements Motorola Face Unlock into 
 
 ![Android](https://img.shields.io/badge/Android-000000?style=flat-square&logo=android&logoColor=white)
 ![Shell](https://img.shields.io/badge/Shell-000000?style=flat-square&logo=gnubash&logoColor=white)
-![Python](https://img.shields.io/badge/Python-000000?style=flat-square&logo=python&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-000000?style=flat-square&logo=githubactions&logoColor=white)
 
 </div>
@@ -14,10 +13,10 @@ Automated workflow to patch services.jar - implements Motorola Face Unlock into 
 
 ## ✨ Features
 
-- 🔓 **Face Unlock** - Implements Motorola Face Unlock into OPlus ROMs (ColorOS 16, realmeUI 7, OxygenOS 16)
-- 📸 **Disable Secure Screenshot** — Removes screenshot restrictions on secure windows
-- ⚙️ **Automated** - Just provide a link, GitHub Actions does the rest
-- 📦 **Ready to flash** - Output includes patched `services.jar` + required system files
+- 🔓 **Face Unlock** - Fix Face Unlock on OPlus ROM with Implements motorola Face Unlock into ColorOS 16, realmeUI 7, OxygenOS 16
+- 📸 **Disable Secure Screenshot** — Removes screenshot restrictions on secure windows, you can enable this feature option while patching
+- ⚙️ **Automated** - Just provide a mirror link of services.jar file link on Pixeldrain, GitHub Actions does the rest
+- 📦 **Ready to Use** - Output includes patched `services.jar` + required system files
 
 ---
 
