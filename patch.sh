@@ -30,6 +30,43 @@ patch_method() {
     fi
 }
 
+check_smali() {
+    local file=$1
+    local name=$2
+    local method_count=$(grep -c "^\.method" $file)
+    local end_count=$(grep -c "^\.end method" $file)
+
+    if [ "$method_count" != "$end_count" ]; then
+        echo "⚠️ ${name}: Malformed methods detected! (.method: $method_count, .end method: $end_count)"
+    else
+        echo "✅ ${name}: OK ($method_count methods)"
+    fi
+}
+
+check_dex_duplicates() {
+    echo "Checking for duplicate dex files..."
+    local found_dup=false
+    declare -A size_map
+
+    while IFS= read -r line; do
+        size=$(echo "$line" | awk '{print $1}')
+        file=$(echo "$line" | awk '{print $2}')
+        if [[ -n "${size_map[$size]}" ]]; then
+            if [ "$found_dup" = false ]; then
+                echo "⚠️ Duplicate dex detected:"
+                found_dup=true
+            fi
+            echo " - ${size_map[$size]} == $file ($size bytes)"
+        else
+            size_map[$size]=$file
+        fi
+    done < <(find tmp_jar/ -name 'classes*.dex' -exec du -b {} \; | sort -k1)
+
+    if [ "$found_dup" = false ]; then
+        echo "✅ No duplicate dex files found"
+    fi
+}
+
 patchservices() {
     jarname=$1
 
@@ -99,6 +136,17 @@ patchservices() {
     fi
 
     echo ""
+
+    # Check smali integrity
+    echo "Checking smali integrity..."
+    [[ -f "tmp_jar/$faceServiceclassfile" ]] && check_smali "tmp_jar/$faceServiceclassfile" "FaceService"
+    [[ -f "tmp_jar/$faceProviderclassfile" ]] && check_smali "tmp_jar/$faceProviderclassfile" "FaceProvider"
+    if [[ "$DISABLE_SECURE_SCREENSHOT" == "true" ]]; then
+        [[ -f "tmp_jar/$wmsclassfile" ]] && check_smali "tmp_jar/$wmsclassfile" "WindowManagerService"
+        [[ -f "tmp_jar/$wsclassfile" ]] && check_smali "tmp_jar/$wsclassfile" "WindowState"
+    fi
+
+    echo ""
     echo "Compiling ${jarname}..."
     apkeditor b -i tmp_jar > /dev/null 2>&1
     unzip tmp_jar_out.apk 'classes*.dex' -d tmp_jar > /dev/null 2>&1
@@ -108,6 +156,10 @@ patchservices() {
     # Inject classes5.dex
     cp $dirnow/AUTOPATCH/faceunlock/classes.dex tmp_jar/classes5.dex
 
+    echo ""
+    check_dex_duplicates
+
+    echo ""
     cd tmp_jar
     echo "Zipping classes..."
     zip -qr0 -t 07302003 $dirnow/tmp.jar classes*
@@ -117,6 +169,7 @@ patchservices() {
     zipalign -v 4 tmp.jar $jarname > /dev/null
 
     rm -rf tmp.jar tmp_jar tmp_jar_out.apk
+    echo ""
     echo "✅ Done! Output: ${jarname}"
 }
 
