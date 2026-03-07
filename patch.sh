@@ -19,13 +19,24 @@ patch_method() {
     local file=$1
     local method_name=$2
     local new_body=$3
-    local method_line=$(expressions_fix "$(grep " ${method_name}(" $file)")
-    echo "DEBUG: method_name='$method_name' method_line='$method_line'"
+    local method_line=$(expressions_fix "$(grep -F " ${method_name}(" $file)")
 
     if [[ -n "$method_line" ]]; then
+        # Save method before patch
+        local before=$(sed -n "/^${method_line}/,/^\.end method/p" $file)
+        
         sed -i "/^${method_line}/,/^\.end method/d" $file
         echo "$new_body" >> $file
-        echo " - ${method_name} [✓]"
+
+        # Save method after patch
+        local new_escaped=$(expressions_fix "$(echo "$new_body" | head -1)")
+        local after=$(sed -n "/^${new_escaped}/,/^\.end method/p" $file)
+
+        if [[ "$before" != "$after" ]]; then
+            echo " - ${method_name} [✓]"
+        else
+            echo " - ${method_name} [⚠️ unchanged]"
+        fi
     else
         echo " - ${method_name} [✗]"
     fi
@@ -150,7 +161,7 @@ patchservices() {
     echo ""
     echo "Compiling ${jarname}..."
     apkeditor b -i tmp_jar > /dev/null 2>&1
-    unzip tmp_jar_out.apk 'classes*.dex' -d tmp_jar > /dev/null 2>&1
+    unzip -o tmp_jar_out.apk 'classes*.dex' -d tmp_jar > /dev/null 2>&1
 
     rm -rf tmp_jar/.cache
 
