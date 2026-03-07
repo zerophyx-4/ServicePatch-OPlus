@@ -20,6 +20,7 @@ patch_method() {
     local method_name=$2
     local new_body=$3
     local method_line=$(expressions_fix "$(grep " ${method_name}(" $file)")
+    echo "DEBUG: method_name='$method_name' method_line='$method_line'"
 
     if [[ -n "$method_line" ]]; then
         sed -i "/^${method_line}/,/^\.end method/d" $file
