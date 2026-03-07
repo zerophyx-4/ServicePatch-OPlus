@@ -95,6 +95,7 @@ patchservices() {
     echo "FaceService:"
     if [[ -f "tmp_jar/$faceServiceclassfile" ]]; then
         patch_method "tmp_jar/$faceServiceclassfile" "getDeclaredInstances" "$faceService_getDeclaredInstances"
+        patch_method "tmp_jar/$faceServiceclassfile" 'lambda$new$2' "$faceProvider_lambda"
     else
         echo " - getDeclaredInstances [✗] (FaceService.smali not found)"
     fi
@@ -120,7 +121,6 @@ patchservices() {
         patch_method "tmp_jar/$faceProviderclassfile" "scheduleGenerateChallenge" "$schedGenClg"
         patch_method "tmp_jar/$faceProviderclassfile" "scheduleRemove" "$schedRM"
         patch_method "tmp_jar/$faceProviderclassfile" "scheduleRevokeChallenge" "$schedRevClg"
-        patch_method "tmp_jar/$faceServiceclassfile" 'lambda$new$2' "$faceProvider_lambda"
     else
         echo " - (FaceProvider.smali not found)"
     fi
