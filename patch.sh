@@ -11,7 +11,7 @@ apkeditor() {
 expressions_fix() {
     var=$1
     escaped_var=$(printf '%s\n' "$var" | sed 's/[\/&]/\\&/g')
-    escaped_var=$(printf '%s\n' "$escaped_var" | sed 's/\[/\\[/g' | sed 's/\]/\\]/g' | sed 's/\./\\./g' | sed 's/;/\\;/g')
+    escaped_var=$(printf '%s\n' "$escaped_var" | sed 's/\[/\\[/g' | sed 's/\]/\\]/g' | sed 's/\./\\./g' | sed 's/;/\\;/g' | sed 's/\$/\\$/g')
     echo $escaped_var
 }
 
