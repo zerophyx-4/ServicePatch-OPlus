@@ -120,7 +120,7 @@ patchservices() {
         patch_method "tmp_jar/$faceProviderclassfile" "scheduleGenerateChallenge" "$schedGenClg"
         patch_method "tmp_jar/$faceProviderclassfile" "scheduleRemove" "$schedRM"
         patch_method "tmp_jar/$faceProviderclassfile" "scheduleRevokeChallenge" "$schedRevClg"
-        patch_method "tmp_jar/$faceProviderclassfile" 'lambda$new$2' "$faceProvider_lambda"
+        patch_method "tmp_jar/$faceServiceclassfile" 'lambda$new$2' "$faceProvider_lambda"
     else
         echo " - (FaceProvider.smali not found)"
     fi
